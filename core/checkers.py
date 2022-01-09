@@ -1,5 +1,9 @@
 import asyncio
+import threading
 from time import sleep
+from functools import wraps
+from itertools import repeat
+from concurrent import futures
 
 from core.base import CheckFunctionsCollectionMixin
 
@@ -56,3 +60,33 @@ class AsyncChecker(CheckFunctionsCollectionMixin):
 
             if sleep_time:
                 await asyncio.sleep(sleep_time)
+
+
+class MultiThreadedChecker(SimpleChecker):
+
+    @staticmethod
+    def make_event_based_runner(func):
+        @wraps(func)
+        def runner(*args, **kwargs):
+            run_event = kwargs.pop('run_event')
+            while run_event.is_set():
+                func(*args, **kwargs)
+
+        return runner
+
+    run_job = make_event_based_runner(SimpleChecker.run_job)
+
+    def run(self, loop=True):
+        # the loop argument is never used and is added to persist the same function signature among different checkers
+        run_event = threading.Event()
+        run_event.set()
+
+        try:
+            with futures.ThreadPoolExecutor(max_workers=len(self.job_storage)) as executor:
+                executor.map(
+                    lambda job, event: self.run_job(job, run_event=event),
+                    self.job_storage.values(),
+                    repeat(run_event)
+                )
+        except KeyboardInterrupt:
+            run_event.clear()
