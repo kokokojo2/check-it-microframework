@@ -21,10 +21,7 @@ class SimpleChecker(CheckFunctionsCollectionMixin):
                 self.run_job(job)
 
     def run_job(self, job):
-        func = job['checker']
-        callback = job.get('callback', None)
-        sleep_time = job.get('sleep_time', None)
-
+        func, callback, sleep_time = self.unpack_job(job)
         result = func()
 
         if callback:
@@ -40,7 +37,8 @@ class AsyncChecker(CheckFunctionsCollectionMixin):
     manner. Each checking function or a callback has to be async. The sleep is not blocking,
     thus the checker will switch to another job during a sleep call.
     """
-    def run(self):
+    def run(self, loop=True):
+        # the loop argument is never used and is added to persist the same function signature among different checkers
         asyncio.run(self._run())
 
     async def _run(self):
@@ -48,9 +46,7 @@ class AsyncChecker(CheckFunctionsCollectionMixin):
         await asyncio.gather(*tasks)
 
     async def run_job(self, job):
-        func = job['checker']
-        callback = job.get('callback', None)
-        sleep_time = job.get('sleep_time', None)
+        func, callback, sleep_time = self.unpack_job(job)
 
         while True:
             result = await func()
