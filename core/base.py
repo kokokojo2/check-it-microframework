@@ -59,3 +59,6 @@ class CheckFunctionsCollectionMixin:
         new_entry['sleep_time'] = sleep_time
 
         self.job_storage[job_name] = new_entry
+
+    def unpack_job(self, job):
+        return job['checker'], job.get('callback', None), job.get('sleep_time', None)
