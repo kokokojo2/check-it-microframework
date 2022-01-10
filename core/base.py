@@ -1,3 +1,4 @@
+import logging
 from functools import update_wrapper
 
 
@@ -62,3 +63,23 @@ class CheckFunctionsCollectionMixin:
 
     def unpack_job(self, job):
         return job['checker'], job.get('callback', None), job.get('sleep_time', None)
+
+
+class LoggingMixin:
+
+    def __init__(self, enable_logging, custom_logger):
+        self.logger = custom_logger
+
+        if not custom_logger and enable_logging:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(logging.INFO)
+            handler = logging.StreamHandler()
+            handler.setLevel(logging.INFO)
+            handler.setFormatter(
+                logging.Formatter('%(asctime)s: %(name)s : %(message)s')
+            )
+            self.logger.addHandler(handler)
+
+        if not enable_logging:
+            self.logger = logging.getLogger(__name__)
+            self.logger.addHandler(logging.NullHandler())
